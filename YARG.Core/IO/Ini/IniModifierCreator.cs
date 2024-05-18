@@ -37,9 +37,8 @@ namespace YARG.Core.IO.Ini
             this.type = type;
         }
 
-        public IniModifier CreateModifier<TChar, TDecoder>(ref YARGTextContainer<TChar> container, TDecoder decoder)
+        public unsafe IniModifier CreateModifier<TChar>(ref YARGTextContainer<TChar> container, delegate*<TChar[], int, int, string> decoder)
             where TChar : unmanaged, IConvertible
-            where TDecoder : IStringDecoder<TChar>, new()
         {
             return type switch
             {
