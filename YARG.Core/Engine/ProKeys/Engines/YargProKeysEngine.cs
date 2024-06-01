@@ -46,6 +46,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     ToggleKey((int) action, gameInput.Button && noteInWindow);
                 }
 
+                State.KeyHeldMaskVisual = gameInput.Button ? State.KeyHeldMaskVisual | 1 << (int) action : State.KeyHeldMaskVisual & ~(1 << (int) action);
                 OnKeyStateChange?.Invoke((int) action, gameInput.Button);
             }
         }
@@ -117,7 +118,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 {
                     // If one of the notes in the chord was missed out the back end,
                     // that means all of them would miss.
-                    foreach (var missedNote in parentNote.ChordEnumerator())
+                    foreach (var missedNote in parentNote.AllNotes)
                     {
                         MissNote(missedNote);
                     }
@@ -129,7 +130,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 if (CanNoteBeHit(parentNote))
                 {
                     YargLogger.LogDebug("Can hit whole note");
-                    foreach (var childNote in parentNote.ChordEnumerator())
+                    foreach (var childNote in parentNote.AllNotes)
                     {
                         HitNote(childNote);
                     }
@@ -146,7 +147,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         if (State.ChordStaggerTimer.IsActive && State.ChordStaggerTimer.IsExpired(State.CurrentTime))
                         {
                             YargLogger.LogFormatDebug("Ending chord staggering at {0}", State.CurrentTime);
-                            foreach (var note in parentNote.ChordEnumerator())
+                            foreach (var note in parentNote.AllNotes)
                             {
                                 // This key in the chord was held by the time chord staggering ended, so it can be hit
                                 if ((State.KeyMask & note.NoteMask) == note.DisjointMask)
@@ -165,7 +166,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         }
                         else
                         {
-                            foreach (var note in parentNote.ChordEnumerator())
+                            foreach (var note in parentNote.AllNotes)
                             {
                                 // Go to next note if the key hit does not match the note's key
                                 if (State.KeyHit != note.Key)
@@ -214,7 +215,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                 ProKeysNote? adjacentNote = null;
                 bool isAdjacent = false;
-                foreach (var note in parentNote.ChordEnumerator())
+                foreach (var note in parentNote.AllNotes)
                 {
                     if (!ProKeysUtilities.IsAdjacentKey(note.Key, State.KeyHit.Value))
                     {
@@ -272,7 +273,18 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 return;
             }
 
-            foreach (var chordNote in note.ChordEnumerator())
+            int key = 0;
+            for (var mask = State.KeyHeldMaskVisual; mask > 0; mask >>= 1)
+            {
+                if ((mask & 1) == 1 && (note.NoteMask & 1 << key) == 0)
+                {
+                    MutateStateWithInput(new GameInput(note.Time, key, false));
+                }
+
+                key++;
+            }
+
+            foreach (var chordNote in note.AllNotes)
             {
                 MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
                 CheckForNoteHit();

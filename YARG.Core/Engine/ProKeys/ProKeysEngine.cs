@@ -49,6 +49,8 @@ namespace YARG.Core.Engine.ProKeys
         {
             // Never retain keys held in Pro Keys because otherwise you get infinite front end
             State.KeyMask = 0;
+            // Don't clear this value otherwise the bot won't let go of keys. Should probably be handled better.
+            // State.KeyHeldMask = 0;
             State.KeyHit = null;
             State.KeyReleased = null;
 
@@ -197,7 +199,7 @@ namespace YARG.Core.Engine.ProKeys
             {
                 score += POINTS_PER_PRO_NOTE * (1 + note.ChildNotes.Count);
 
-                foreach (var child in note.ChordEnumerator())
+                foreach (var child in note.AllNotes)
                 {
                     score += (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
                 }
